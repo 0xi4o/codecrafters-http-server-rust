@@ -20,28 +20,30 @@ fn handle_client(mut stream: TcpStream) {
 
     let mut ok_response = "HTTP/1.1 200 OK\r\n".to_owned();
     if method == "GET" {
-        let path_parts = path.split("/").collect::<Vec<&str>>();
-        // return 200 if path is "/" and 404 for everything else
-        if path == "/" {
-            ok_response.push_str("\r\n");
-            stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-        }
-        if path_parts[1] == "echo" {
-            let content_type = "Content-Type: text/plain\r\n";
-            // calculate content length and set value for response string
-            let mut content_length = "Content-Length: ".to_owned();
-            content_length.push_str(&path_parts[2].len().to_string());
-            content_length.push_str("\r\n");
+        if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
+            // return 200 if path is "/" and 404 for everything else
+            if path == "/" {
+                ok_response.push_str("\r\n");
+                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
+            }
+            if root.to_owned() == "echo" {
+                let content_type = "Content-Type: text/plain\r\n";
+                // calculate content length and set value for response string
+                let pathname = &pathname.join("/");
+                let mut content_length = "Content-Length: ".to_owned();
+                content_length.push_str(&pathname.len().to_string());
+                content_length.push_str("\r\n");
 
-            // form response string
-            ok_response.push_str(content_type);
-            ok_response.push_str(&content_length);
-            ok_response.push_str("\r\n");
-            ok_response.push_str(path_parts[2]);
+                // form response string
+                ok_response.push_str(content_type);
+                ok_response.push_str(&content_length);
+                ok_response.push_str("\r\n");
+                ok_response.push_str(&pathname);
 
-            stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-        }
-        stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
+            }
+            stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+        };
     }
     stream.flush().unwrap();
 }

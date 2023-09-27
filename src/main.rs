@@ -8,8 +8,9 @@ fn handle_client(mut stream: TcpStream) {
     stream.read(&mut stream_buffer).unwrap();
     // form request string from stream buffer
     let request = str::from_utf8(&stream_buffer).unwrap();
+    let mut lines = request.split("\r\n");
     // get the first line of request by splitting the request string
-    let first_line = request.split("\r\n").collect::<Vec<&str>>().first().unwrap().to_owned();
+    let first_line = lines.next().unwrap();
     // form method, path, and version from first line
     let mut first_line_parts = first_line.split_whitespace();
     let method = first_line_parts.next().unwrap().to_owned();
@@ -20,30 +21,38 @@ fn handle_client(mut stream: TcpStream) {
 
     let mut ok_response = "HTTP/1.1 200 OK\r\n".to_owned();
     if method == "GET" {
+        // return 200 if path is "/"
+        if path == "/" {
+            ok_response.push_str("\r\n");
+            stream.write(ok_response.as_bytes()).expect("unable to write to stream");
+        }
+        // if path is something else and starts with "/echo" or "/user-agent" return 200 with content type, length and body
         if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
-            // return 200 if path is "/" and 404 for everything else
-            if path == "/" {
-                ok_response.push_str("\r\n");
-                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-            }
+            let content_type = "Content-Type: text/plain\r\n";
+            let mut content = String::new();
             if root.to_owned() == "echo" {
-                let content_type = "Content-Type: text/plain\r\n";
-                // calculate content length and set value for response string
-                let pathname = &pathname.join("/");
-                let mut content_length = "Content-Length: ".to_owned();
-                content_length.push_str(&pathname.len().to_string());
-                content_length.push_str("\r\n");
-
-                // form response string
-                ok_response.push_str(content_type);
-                ok_response.push_str(&content_length);
-                ok_response.push_str("\r\n");
-                ok_response.push_str(&pathname);
-
-                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
+                // calculate content length and set content
+                content = pathname.join("/");
+            } else if root.to_owned() == "user-agent" {
+                // get the user agent string from request and set content
+                let user_agent = lines.find(|item| item.starts_with("User-Agent")).unwrap().to_owned();
+                content = user_agent.replace("User-Agent: ", "");
             }
-            stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+            // form content length and response from content
+            let mut content_length = "Content-Length: ".to_owned();
+            content_length.push_str(&content.len().to_string());
+            content_length.push_str("\r\n");
+
+            // form response string
+            ok_response.push_str(content_type);
+            ok_response.push_str(&content_length);
+            ok_response.push_str("\r\n");
+            ok_response.push_str(&content);
+
+            stream.write(ok_response.as_bytes()).expect("unable to write to stream");
         };
+        // return 404 for everything else
+        stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
     }
     stream.flush().unwrap();
 }

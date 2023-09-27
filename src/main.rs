@@ -40,6 +40,7 @@ fn handle_client(mut stream: TcpStream) {
             } else {
                 // return 404 for everything else
                 stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+                stream.flush().unwrap();
             }
             // form content length and response from content
             let mut content_length = "Content-Length: ".to_owned();

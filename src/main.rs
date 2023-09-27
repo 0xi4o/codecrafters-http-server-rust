@@ -1,7 +1,7 @@
 use std::io::{Read, Write};
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
-use std::str;
+use std::{str, thread};
 
 fn handle_client(mut stream: TcpStream) {
     let mut stream_buffer = [0; 1024];
@@ -75,7 +75,9 @@ fn main() {
         match stream {
             Ok(stream) => {
                 println!("accepted new connection");
-                handle_client(stream);
+                thread::spawn(|| {
+                    handle_client(stream);
+                });
             }
             Err(e) => {
                 println!("error: {}", e);

@@ -25,36 +25,38 @@ fn handle_client(mut stream: TcpStream) {
         if path == "/" {
             ok_response.push_str("\r\n");
             stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-        }
-        // if path is something else and starts with "/echo" or "/user-agent" return 200 with content type, length and body
-        if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
-            let content_type = "Content-Type: text/plain\r\n";
-            let mut content = String::new();
-            if root.to_owned() == "echo" {
-                // calculate content length and set content
-                content = pathname.join("/");
-            } else if root.to_owned() == "user-agent" {
-                // get the user agent string from request and set content
-                let user_agent = lines.find(|item| item.starts_with("User-Agent")).unwrap().to_owned();
-                content = user_agent.replace("User-Agent: ", "");
-            } else {
-                // return 404 for everything else
-                stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+        } else {
+            // if path is something else and starts with "/echo" or "/user-agent" return 200 with content type, length and body
+            if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
+                let content_type = "Content-Type: text/plain\r\n";
+                let mut content = String::new();
+                if root.to_owned() == "echo" {
+                    // calculate content length and set content
+                    content = pathname.join("/");
+                } else if root.to_owned() == "user-agent" {
+                    // get the user agent string from request and set content
+                    let user_agent = lines.find(|item| item.starts_with("User-Agent")).unwrap().to_owned();
+                    content = user_agent.replace("User-Agent: ", "");
+                } else {
+                    // return 404 for everything else
+                    stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+                    stream.flush().unwrap();
+                }
+                // form content length and response from content
+                let mut content_length = "Content-Length: ".to_owned();
+                content_length.push_str(&content.len().to_string());
+                content_length.push_str("\r\n");
+
+                // form response string
+                ok_response.push_str(content_type);
+                ok_response.push_str(&content_length);
+                ok_response.push_str("\r\n");
+                ok_response.push_str(&content);
+
+                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
                 stream.flush().unwrap();
-            }
-            // form content length and response from content
-            let mut content_length = "Content-Length: ".to_owned();
-            content_length.push_str(&content.len().to_string());
-            content_length.push_str("\r\n");
-
-            // form response string
-            ok_response.push_str(content_type);
-            ok_response.push_str(&content_length);
-            ok_response.push_str("\r\n");
-            ok_response.push_str(&content);
-
-            stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-        };
+            };
+        }
         // return 404 for everything else
         stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
     }

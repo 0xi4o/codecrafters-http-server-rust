@@ -37,6 +37,9 @@ fn handle_client(mut stream: TcpStream) {
                 // get the user agent string from request and set content
                 let user_agent = lines.find(|item| item.starts_with("User-Agent")).unwrap().to_owned();
                 content = user_agent.replace("User-Agent: ", "");
+            } else {
+                // return 404 for everything else
+                stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
             }
             // form content length and response from content
             let mut content_length = "Content-Length: ".to_owned();

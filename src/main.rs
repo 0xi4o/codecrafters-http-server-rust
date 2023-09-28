@@ -16,7 +16,6 @@ fn handle_client(mut stream: TcpStream, dir: String) {
     let mut first_line_parts = first_line.split_whitespace();
     let method = first_line_parts.next().unwrap().to_owned();
     let path = first_line_parts.next().unwrap().to_owned();
-    // let version = first_line_parts.iter().next().unwrap().to_owned();
 
     println!("{method} {path}");
 
@@ -39,6 +38,7 @@ fn handle_client(mut stream: TcpStream, dir: String) {
                     let user_agent = lines.find(|item| item.starts_with("User-Agent")).unwrap().to_owned();
                     content = user_agent.replace("User-Agent: ", "");
                 } else if root.to_owned() == "files" {
+                    // handle reading a file and returning the contents in the response
                     let filename = pathname.join("");
                     let file_path = format!("{}/{}", dir, filename);
                     if Path::new(&dir).is_dir() {
@@ -73,8 +73,33 @@ fn handle_client(mut stream: TcpStream, dir: String) {
         }
         // return 404 for everything else
         stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
+    } else if method == "POST" {
+        let body = lines.last().unwrap();
+        if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
+            if root.to_owned() == "files" {
+                let filename = pathname.join("");
+                let file_path = format!("{}/{}", dir, filename);
+                let _ = write_to_file(&dir, body, file_path);
+                ok_response = "HTTP/1.1 201 OK\r\n".to_owned();
+                stream.write(ok_response.as_bytes()).expect("unable to write to stream");
+                stream.flush().unwrap();
+            }
+        }
+    } else {
+        // return 404 for everything else
+        stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
     }
     stream.flush().unwrap();
+}
+
+fn write_to_file(dir: &String, body: &str, file_path: String) -> anyhow::Result<()> {
+    if Path::new(&dir).is_dir() {
+        fs::write(file_path, body)?;
+    } else {
+        fs::create_dir_all(dir)?;
+        fs::write(file_path, body)?;
+    }
+    Ok(())
 }
 
 fn main() {
@@ -82,14 +107,12 @@ fn main() {
     println!("Logs from your program will appear here!");
 
     let args = env::args().skip(1).collect::<Vec<String>>();
-    println!("{:?}", args);
     let mut dir = "".to_owned();
     if let [flag, d] = &args[..] {
         if flag == "--directory" {
             dir = d.to_owned();
         }
     }
-    println!("{:?}", dir);
 
     // Uncomment this block to pass the first stage
     //

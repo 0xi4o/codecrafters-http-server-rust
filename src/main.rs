@@ -81,7 +81,7 @@ fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
-    let args = env::args().skip(2).collect::<Vec<String>>();
+    let args = env::args().skip(1).collect::<Vec<String>>();
     println!("{:?}", args);
     let mut dir = "".to_owned();
     if let [flag, d] = &args[..] {

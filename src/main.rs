@@ -2,6 +2,7 @@ use std::io::{Read, Write};
 // Uncomment this block to pass the first stage
 use std::net::{TcpListener, TcpStream};
 use std::{env, fs, str, thread};
+use std::fs::File;
 use std::path::Path;
 
 fn handle_client(mut stream: TcpStream, dir: String) {
@@ -90,18 +91,19 @@ fn handle_client(mut stream: TcpStream, dir: String) {
         // return 404 for everything else
         stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
     }
-    stream.flush().unwrap();
 }
 
 fn write_to_file(dir: &String, body: &str, file_path: String) -> anyhow::Result<()> {
     if Path::new(&dir).is_dir() {
         println!("dir exists -> writing to file");
-        fs::write(file_path, body.as_bytes())?;
+        let mut buffer = File::create(file_path)?;
+        buffer.write_all(body.as_bytes())?;
     } else {
         println!("dir doesn't exist -> creating dir");
         fs::create_dir_all(dir)?;
         println!("created dir -> writing to file");
-        fs::write(file_path, body.as_bytes())?;
+        let mut buffer = File::create(file_path)?;
+        buffer.write_all(body.as_bytes())?;
     }
     Ok(())
 }
@@ -117,8 +119,6 @@ fn main() {
             dir = d.to_owned();
         }
     }
-
-    println!("directory: {dir}");
 
     // Uncomment this block to pass the first stage
     //

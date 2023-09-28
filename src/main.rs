@@ -84,7 +84,6 @@ fn handle_client(mut stream: TcpStream, dir: String) {
                 let _ = write_to_file(&dir, body, file_path);
                 ok_response = "HTTP/1.1 201 OK\r\n".to_owned();
                 stream.write(ok_response.as_bytes()).expect("unable to write to stream");
-                stream.flush().unwrap();
             }
         }
     } else {

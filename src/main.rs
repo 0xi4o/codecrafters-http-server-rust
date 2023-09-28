@@ -75,10 +75,12 @@ fn handle_client(mut stream: TcpStream, dir: String) {
         stream.write("HTTP/1.1 404 OK\r\n\r\n".as_bytes()).expect("unable to write to stream");
     } else if method == "POST" {
         let body = lines.last().unwrap();
+        println!("{body}");
         if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
             if root.to_owned() == "files" {
                 let filename = pathname.join("");
                 let file_path = format!("{}/{}", dir, filename);
+                println!("writing to {file_path}");
                 let _ = write_to_file(&dir, body, file_path);
                 ok_response = "HTTP/1.1 201 OK\r\n".to_owned();
                 stream.write(ok_response.as_bytes()).expect("unable to write to stream");
@@ -94,10 +96,13 @@ fn handle_client(mut stream: TcpStream, dir: String) {
 
 fn write_to_file(dir: &String, body: &str, file_path: String) -> anyhow::Result<()> {
     if Path::new(&dir).is_dir() {
-        fs::write(file_path, body)?;
+        println!("dir exists -> writing to file");
+        fs::write(file_path, body.as_bytes())?;
     } else {
+        println!("dir doesn't exist -> creating dir");
         fs::create_dir_all(dir)?;
-        fs::write(file_path, body)?;
+        println!("created dir -> writing to file");
+        fs::write(file_path, body.as_bytes())?;
     }
     Ok(())
 }
@@ -113,6 +118,8 @@ fn main() {
             dir = d.to_owned();
         }
     }
+
+    println!("directory: {dir}");
 
     // Uncomment this block to pass the first stage
     //

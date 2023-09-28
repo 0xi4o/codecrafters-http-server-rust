@@ -79,7 +79,7 @@ fn handle_client(mut stream: TcpStream, dir: String) {
         if let [_, root, pathname @ ..] = &path.split("/").collect::<Vec<&str>>()[..] {
             if root.to_owned() == "files" {
                 let filename = pathname.join("");
-                let file_path = format!("{}/{}", dir, filename);
+                let file_path = format!("{}{}", dir, filename);
                 println!("writing to {file_path}");
                 let _ = write_to_file(&dir, body, file_path);
                 ok_response = "HTTP/1.1 201 OK\r\n".to_owned();

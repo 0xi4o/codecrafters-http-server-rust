@@ -21,7 +21,7 @@ impl HttpMethod {
     }
 }
 
-async fn handle_client(mut stream: TcpStream, dir: String) {
+fn handle_client(mut stream: TcpStream, dir: String) {
     let buf_reader = BufReader::new(&mut stream);
     // form request string from stream buffer
     let buf_lines = &buf_reader.lines().map(|line| line.expect("could not read line")).collect::<Vec<_>>();
@@ -121,8 +121,7 @@ fn write_to_file(body: String, file_path: String) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
     // You can use print statements as follows for debugging, they'll be visible when running tests.
     println!("Logs from your program will appear here!");
 
@@ -143,8 +142,8 @@ async fn main() {
             Ok(stream) => {
                 let directory = dir.clone();
                 println!("accepted new connection");
-                tokio::spawn(async move {
-                    handle_client(stream, directory).await;
+                thread::spawn(|| {
+                    handle_client(stream, directory);
                 });
             }
             Err(e) => {

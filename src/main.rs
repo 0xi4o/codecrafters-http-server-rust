@@ -10,9 +10,9 @@ use crate::request::{HttpMethod, HttpRequest};
 
 async fn process_request(mut stream: TcpStream, dir: String) {
     let mut stream_buffer = [0; 1024];
-    stream.read(&mut stream_buffer).await.unwrap();
+    let n = stream.read(&mut stream_buffer).await.unwrap();
     // form request string from stream buffer
-    let req_str = str::from_utf8(&stream_buffer).unwrap();
+    let req_str = str::from_utf8(&stream_buffer[0..n]).unwrap();
     let request = HttpRequest::parse(req_str).await;
     let url = &request.url;
     let root = &url.root;

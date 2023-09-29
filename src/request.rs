@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use itertools::Itertools;
 
 #[derive(Debug)]
 pub enum HttpMethod {
@@ -59,7 +60,9 @@ impl HttpRequest {
         let url_str = first_line_parts.next().unwrap();
         let url = HttpUrl::from(url_str);
 
-        for line in lines {
+        let request_headers = lines.clone().take_while(|line| !line.is_empty());
+
+        for line in request_headers {
             if let [key, value] = &line.split(": ").collect::<Vec<&str>>()[..] {
                 let header_key = key.to_string();
                 let header_value = value.to_string();
@@ -67,11 +70,24 @@ impl HttpRequest {
             }
         }
 
-        HttpRequest {
-            body: None,
-            headers,
-            method,
-            url
+        match method {
+            HttpMethod::POST => {
+                let body = lines.skip_while(|line| !line.is_empty()).join("\r\n");
+                HttpRequest {
+                    body: Some(body),
+                    headers,
+                    method,
+                    url,
+                }
+            }
+            HttpMethod::GET => {
+                HttpRequest {
+                    body: None,
+                    headers,
+                    method,
+                    url,
+                }
+            }
         }
     }
 }

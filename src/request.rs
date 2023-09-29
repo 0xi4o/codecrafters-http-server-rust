@@ -72,7 +72,7 @@ impl HttpRequest {
 
         match method {
             HttpMethod::POST => {
-                let body = lines.skip_while(|line| !line.is_empty()).join("\r\n");
+                let body = lines.skip_while(|line| !line.is_empty()).skip(1).collect();
                 HttpRequest {
                     body: Some(body),
                     headers,
